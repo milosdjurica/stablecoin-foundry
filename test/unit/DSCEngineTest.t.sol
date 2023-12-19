@@ -74,5 +74,12 @@ contract DSCEngineTest is Test {
         vm.stopPrank();
     }
 
-    function testRevertsWithUnapprovedCollateral() public {}
+    function testRevertsWithUnapprovedCollateral() public {
+        ERC20Mock randomToken = new ERC20Mock();
+
+        vm.startPrank(USER);
+        vm.expectRevert(DSCEngine.DSCEngine__TokenAddressNotAllowed.selector);
+        engine.depositCollateral(address(randomToken), AMOUNT_COLLATERAL);
+        vm.stopPrank();
+    }
 }
