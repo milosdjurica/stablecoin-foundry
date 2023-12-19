@@ -36,6 +36,7 @@ contract DSCEngine is ReentrancyGuard {
     error DESCEngine__TransferFailed();
     error DSCEngine__HealthFactorIsBroken(uint256 healthFactor);
     error DESCEngine__MintFailed();
+    error DESC__HealthFactorIsOkay();
 
     ////////////////////
     // * Types 		  //
@@ -48,7 +49,8 @@ contract DSCEngine is ReentrancyGuard {
     uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50;
     uint256 private constant LIQUIDATION_PRECISION = 100;
-    uint256 private constant MIN_HEALTH_FACTOR = 1;
+    uint256 private constant LIQUIDATION_BONUS = 10; // 10% bonus
+    uint256 private constant MIN_HEALTH_FACTOR = 1e18;
 
     DecentralizedStableCoin private immutable i_dsc;
 
@@ -122,7 +124,7 @@ contract DSCEngine is ReentrancyGuard {
 
     /**
      *
-     * @param tokenCollateralAddress Address of the token to deposit as collaterall (wBTC OR wETH)
+     * @param tokenCollateralAddress Address of the token to deposit as collateral (wBTC OR wETH)
      * @param amountCollateral The amount of collateral to deposit
      */
     function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
@@ -203,7 +205,21 @@ contract DSCEngine is ReentrancyGuard {
      * then we wouldnt be able to incentive the liquidators.
      * For example -> price of collateral plummeted before anyone could be liquidated.
      */
-    function liquidate(address collateral, address user, uint256 debtToCover) external moreThanZero(debtToCover) {}
+    function liquidate(address collateral, address user, uint256 debtToCover)
+        external
+        moreThanZero(debtToCover)
+        nonReentrant
+    {
+        uint256 startingUserHealthFactor = _healthFactor(user);
+        if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) revert DESC__HealthFactorIsOkay();
+
+        uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(collateral, debtToCover);
+        // Liquidator gets $110 weth for 100 of DSC
+        // We should implement a feature to liquidate in the event the protocol is insolvent
+        // And sweep extra amounts into a treasury
+        uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
+        uint256 totalCollateralToRedeeem = tokenAmountFromDebtCovered + bonusCollateral;
+    }
 
     function getHealthFactor() external view {}
 
@@ -222,6 +238,13 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * View & Pure  //
     ////////////////////
+
+    function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
+        (, int256 price,,,) = priceFeed.latestRoundData();
+        // ( $1000e18      * 1e18  )    / ($2000e8        * 1e10)
+        (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
+    }
 
     function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
