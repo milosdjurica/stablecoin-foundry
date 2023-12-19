@@ -189,7 +189,21 @@ contract DSCEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender); // this is probably not needed
     }
 
-    function liquidate() external {}
+    /**
+     *
+     * @param collateral The ERC20 address of collateral to liquidate (wETH/wBTC)
+     * @param user User who has broken the health factor. Their _healthFactor is below MIN_HEALTH_FACTOR !!!
+     * @param debtToCover The amount of DSC you want to burn to improve the users health factor
+     *
+     * @notice You can partially liquidate user. You don't have to take him all money
+     * @notice You will get a liquidation bonus for liquidating user
+     * @notice This function working assumes the protocol will be roughly 200% overcollateralized
+     * in order for this to work. For every 100 DSC there must be AT LEAST $200 of collateral !!!
+     * @notice The known bug would be if the protocol were 100% or less collateralized,
+     * then we wouldnt be able to incentive the liquidators.
+     * For example -> price of collateral plummeted before anyone could be liquidated.
+     */
+    function liquidate(address collateral, address user, uint256 debtToCover) external moreThanZero(debtToCover) {}
 
     function getHealthFactor() external view {}
 
