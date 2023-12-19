@@ -37,7 +37,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__HealthFactorIsBroken(uint256 healthFactor);
     error DESCEngine__MintFailed();
     error DESC__HealthFactorIsOkay();
-
+    error DSCEngine__HealthFactorNotImproved();
     ////////////////////
     // * Types 		  //
     ////////////////////
@@ -214,6 +214,11 @@ contract DSCEngine is ReentrancyGuard {
         uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
         _redeemCollateral(collateral, totalCollateralToRedeem, user, msg.sender);
         _burnDsc(debtToCover, user, msg.sender);
+
+        uint256 endingHealthFactor = _healthFactor(user);
+        if (endingHealthFactor >= startingUserHealthFactor) revert DSCEngine__HealthFactorNotImproved();
+
+        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     function getHealthFactor() external view {}
@@ -238,7 +243,7 @@ contract DSCEngine is ReentrancyGuard {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
         (, int256 price,,,) = priceFeed.latestRoundData();
         // ( $1000e18      * 1e18  )    / ($2000e8        * 1e10)
-        (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
+        return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
     function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
