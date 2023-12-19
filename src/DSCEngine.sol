@@ -3,6 +3,7 @@ pragma solidity 0.8.20;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title DSCEngine
@@ -14,7 +15,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
  * - Dollar Pegged
  * - Algorithmically Stable
  *
- * It is similar to DAI if DAI had no governance, no fees and was only backed by WETH and WBTC.
+ * It is similar to DAI if DAI had no governance, no fees and was only backed by wETH and wBTC.
  *
  * Our DSC System should always be "overcollateralized". At no point, should the value of
  * all collateral <= the $ backed value of all the DSC.
@@ -31,6 +32,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__MustBeMoreThanZero();
     error DSCEngine__TokenAddressNotAllowed();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+    error DESCEngine__TransferFailed();
 
     ////////////////////
     // * Types 		  //
@@ -105,6 +107,9 @@ contract DSCEngine is ReentrancyGuard {
     {
         s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral;
         emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
+        bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
+
+        if (!success) revert DESCEngine__TransferFailed();
     }
 
     function redeemCollateralForDsc() external {}
