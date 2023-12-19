@@ -138,10 +138,24 @@ contract DSCEngine is ReentrancyGuard {
         if (!success) revert DESCEngine__TransferFailed();
     }
 
-    function redeemCollateralForDsc() external {}
+    /**
+     *
+     * @param tokenCollateralAddress Address of collateral token to redeem
+     * @param amountCollateral Amount of collateral to redeem
+     * @param amountDscToBurn Amount of DSC to burn
+     *
+     * This function burns DSC and redeems collateral in one transaction
+     */
+    function redeemCollateralForDsc(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToBurn)
+        external
+    {
+        burnDsc(amountDscToBurn);
+        redeemCollateral(tokenCollateralAddress, amountCollateral);
+        // redeem collateral already checks if health factor is broken
+    }
 
     function redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral)
-        external
+        public
         moreThanZero(amountCollateral)
         nonReentrant
     {
@@ -166,7 +180,7 @@ contract DSCEngine is ReentrancyGuard {
         if (!minted) revert DESCEngine__MintFailed();
     }
 
-    function burnDsc(uint256 amount) external moreThanZero(amount) {
+    function burnDsc(uint256 amount) public moreThanZero(amount) {
         s_DscMinted[msg.sender] -= amount;
         bool success = i_dsc.transferFrom(msg.sender, address(this), amount);
 
