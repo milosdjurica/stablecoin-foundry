@@ -34,6 +34,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__TokenAddressNotAllowed();
     error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
     error DESCEngine__TransferFailed();
+    error DSCEngine__HealthFactorIsBroken(uint256 healthFactor);
 
     ////////////////////
     // * Types 		  //
@@ -46,6 +47,7 @@ contract DSCEngine is ReentrancyGuard {
     uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50;
     uint256 private constant LIQUIDATION_PRECISION = 100;
+    uint256 private constant MIN_HEALTH_FACTOR = 1;
 
     DecentralizedStableCoin private immutable i_dsc;
 
@@ -174,7 +176,10 @@ contract DSCEngine is ReentrancyGuard {
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
-    function _revertIfHealthFactorIsBroken(address user) internal view {}
+    function _revertIfHealthFactorIsBroken(address user) internal view {
+        uint256 userHealthFactor = _healthFactor(user);
+        if (userHealthFactor < MIN_HEALTH_FACTOR) revert DSCEngine__HealthFactorIsBroken(userHealthFactor);
+    }
 
     /**
      *
