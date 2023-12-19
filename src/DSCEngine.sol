@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
+import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
+
 /**
  * @title DSCEngine
  * @author Milos Djurica
@@ -26,6 +28,8 @@ contract DSCEngine {
     // * Errors 	  //
     ////////////////////
     error DSCEngine__MustBeMoreThanZero();
+    error DSCEngine__TokenAddressNotAllowed();
+    error DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
 
     ////////////////////
     // * Types 		  //
@@ -34,6 +38,9 @@ contract DSCEngine {
     ////////////////////
     // * Variables	  //
     ////////////////////
+    mapping(address token => address priceFeed) private s_priceFeeds; // s_tokenToPriceFeed
+
+    DecentralizedStableCoin private immutable i_dsc;
 
     ////////////////////
     // * Events 	  //
@@ -47,6 +54,12 @@ contract DSCEngine {
         _;
     }
 
+    modifier isAllowedToken(address tokenAddress) {
+        if (s_priceFeeds[tokenAddress] == address(0))
+            revert DSCEngine__TokenAddressNotAllowed();
+        _;
+    }
+
     ////////////////////
     // * Functions	  //
     ////////////////////
@@ -54,7 +67,19 @@ contract DSCEngine {
     ////////////////////
     // * Constructor  //
     ////////////////////
-    constructor() {}
+    constructor(
+        address[] memory tokenAddresses,
+        address[] memory priceFeedAddresses,
+        address dscAddress
+    ) {
+        if (tokenAddresses.length != priceFeedAddresses.length)
+            revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+
+        for (uint i = 0; i < tokenAddresses.length; i++) {
+            s_priceFeeds[tokenAddresses[i]] = priceFeedAddresses[i];
+        }
+        i_dsc = DecentralizedStableCoin(dscAddress);
+    }
 
     ////////////////////////////
     // * Receive & Fallback   //
