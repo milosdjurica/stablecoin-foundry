@@ -312,14 +312,7 @@ contract DSCEngine is ReentrancyGuard {
         // total dscMinted
         // total collateral VALUE (in $USD)
         (uint256 totalDscMinted, uint256 totalCollateralValueInUsd) = _getAccountInformation(user);
-
-        uint256 collateralAdjustedForThreshold =
-            (totalCollateralValueInUsd * LIQUIDATION_THRESHOLD / LIQUIDATION_PRECISION);
-        // ! USER MUST HAVE DOUBLE MORE COLLATERAL THAN DEPOSITED !!!!
-        // $1000 ETH / 100 DSC
-        // 1000 * 50 / 100 / 100 > 1
-        // *50/100 can be only /2 -> 1000 / 2 / 100 = 5 >>> 1
-        return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
+        return _calculateHealthFactor(totalDscMinted, totalCollateralValueInUsd);
     }
 
     function _getAccountInformation(address user)
@@ -330,5 +323,34 @@ contract DSCEngine is ReentrancyGuard {
         totalDscMinted = s_DscMinted[user];
 
         totalCollateralValueInUsd = getAccountCollateralValue(user);
+    }
+
+    function calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+        external
+        pure
+        returns (uint256)
+    {
+        return _calculateHealthFactor(totalDscMinted, collateralValueInUsd);
+    }
+
+    function _calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+        internal
+        pure
+        returns (uint256)
+    {
+        if (totalDscMinted == 0) return type(uint256).max;
+        // ! USER MUST HAVE DOUBLE MORE COLLATERAL THAN DEPOSITED !!!!
+        // $1000 ETH / 100 DSC
+        // 1000 * 50 / 100 / 100 > 1
+        // *50/100 can be only /2 -> 1000 / 2 / 100 = 5 >>> 1
+        uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
+    }
+
+    function revertIfHealthFactorIsBroken(address user) internal view {
+        uint256 userHealthFactor = _healthFactor(user);
+        if (userHealthFactor < MIN_HEALTH_FACTOR) {
+            revert DSCEngine__HealthFactorIsBroken(userHealthFactor);
+        }
     }
 }
