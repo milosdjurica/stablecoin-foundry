@@ -45,6 +45,7 @@ contract DSCEngine is ReentrancyGuard {
 
     mapping(address token => address priceFeed) private s_priceFeeds; // s_tokenToPriceFeed
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
+    mapping(address user => uint256 amountDscMinted) private s_DscMinted;
 
     ////////////////////
     // * Events 	  //
@@ -116,7 +117,15 @@ contract DSCEngine is ReentrancyGuard {
 
     function redeemCollateral() external {}
 
-    function mintDsc() external {}
+    /**
+     * @notice Follows CEI
+     * @param amountDscToMint The Amount of Decentralized Stablecoin to mint
+     * @notice They must have more collateral value than the minimum threshold
+     */
+    function mintDsc(uint256 amountDscToMint) external moreThanZero(amountDscToMint) nonReentrant {
+        s_DscMinted[msg.sender] += amountDscToMint;
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
 
     function burnDsc() external {}
 
@@ -139,4 +148,27 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * View & Pure  //
     ////////////////////
+    function _revertIfHealthFactorIsBroken(address user) internal view {}
+
+    /**
+     *
+     * @param user Address of user
+     * @notice Returns how close user is to the liquidation
+     * If user goes below 1, then they can get liquidated
+     */
+    function _healthFactor(address user) private view returns (uint256) {
+        // total dscMinted
+        // total collateral VALUE (in $USD)
+        (uint256 totalDscMinted, uint256 totalCollateralValueInUsd) = _getAccountInformation(user);
+    }
+
+    function _getAccountInformation(address user)
+        private
+        view
+        returns (uint256 totalDscMinted, uint256 totalCollateralValueInUsd)
+    {
+        totalDscMinted = s_DscMinted(user);
+
+        // totalCollateralValueInUsd =
+    }
 }
