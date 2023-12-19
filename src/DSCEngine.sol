@@ -22,9 +22,59 @@ pragma solidity 0.8.20;
  */
 // Decentralized Stablecoin Engine
 contract DSCEngine {
+    ////////////////////
+    // * Errors 	  //
+    ////////////////////
+    error DSCEngine__MustBeMoreThanZero();
+
+    ////////////////////
+    // * Types 		  //
+    ////////////////////
+
+    ////////////////////
+    // * Variables	  //
+    ////////////////////
+
+    ////////////////////
+    // * Events 	  //
+    ////////////////////
+
+    ////////////////////
+    // * Modifiers 	  //
+    ////////////////////
+    modifier moreThanZero(uint amount) {
+        if (amount <= 0) revert DSCEngine__MustBeMoreThanZero();
+        _;
+    }
+
+    ////////////////////
+    // * Functions	  //
+    ////////////////////
+
+    ////////////////////
+    // * Constructor  //
+    ////////////////////
+    constructor() {}
+
+    ////////////////////////////
+    // * Receive & Fallback   //
+    ////////////////////////////
+
+    ////////////////////
+    // * External 	  //
+    ////////////////////
+
     function depositCollateralAndMintDsc() external {}
 
-    function depositCollateral() external {}
+    /**
+     *
+     * @param tokenCollateralAddress Address of the token to deposit as collaterall (wBTC OR wETH)
+     * @param amountCollateral The amount of collateral to deposit
+     */
+    function depositCollateral(
+        address tokenCollateralAddress,
+        uint amountCollateral
+    ) external moreThanZero(amountCollateral) {}
 
     function redeemCollateralForDsc() external {}
 
@@ -37,4 +87,20 @@ contract DSCEngine {
     function liquidate() external {}
 
     function getHealthFactor() external view {}
+
+    ////////////////////
+    // * Public 	  //
+    ////////////////////
+
+    ////////////////////
+    // * Internal 	  //
+    ////////////////////
+
+    ////////////////////
+    // * Private 	  //
+    ////////////////////
+
+    ////////////////////
+    // * View & Pure  //
+    ////////////////////
 }
