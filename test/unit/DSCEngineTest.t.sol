@@ -24,5 +24,11 @@ contract DSCEngineTest is Test {
     }
 
     // * PriceFeed Tests
-    function testGetUsdValue() public {}
+    function testGetUsdValue() public {
+        uint256 ethAmount = 15e18;
+        // 15 * 2000$ = 30,000e18
+        uint256 expectedUsd = 30000e18;
+        uint256 actualUsd = engine.getUsdValue(weth, ethAmount);
+        assertEq(expectedUsd, actualUsd);
+    }
 }
