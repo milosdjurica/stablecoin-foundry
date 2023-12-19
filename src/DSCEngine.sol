@@ -180,11 +180,7 @@ contract DSCEngine is ReentrancyGuard {
     }
 
     function burnDsc(uint256 amount) public moreThanZero(amount) {
-        s_DscMinted[msg.sender] -= amount;
-        bool success = i_dsc.transferFrom(msg.sender, address(this), amount);
-
-        if (!success) revert DESCEngine__TransferFailed();
-        i_dsc.burn(amount);
+        _burnDsc(amount, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender); // this is probably not needed
     }
 
@@ -217,6 +213,7 @@ contract DSCEngine is ReentrancyGuard {
         uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
         uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
         _redeemCollateral(collateral, totalCollateralToRedeem, user, msg.sender);
+        _burnDsc(debtToCover, user, msg.sender);
     }
 
     function getHealthFactor() external view {}
@@ -269,6 +266,22 @@ contract DSCEngine is ReentrancyGuard {
         bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
 
         if (!success) revert DESCEngine__TransferFailed();
+    }
+
+    /**
+     *
+     * @param amountDscToBurn Amount of DSC to get burned
+     * @param onBehalfOf Who are we taking DSC from
+     * @param dscFrom Who is paying for this
+     * @dev Low level internal function, do not call unless the function calling it is checking
+     * for health factor being broken!!!
+     */
+    function _burnDsc(uint256 amountDscToBurn, address onBehalfOf, address dscFrom) private {
+        s_DscMinted[onBehalfOf] -= amountDscToBurn;
+        bool success = i_dsc.transferFrom(dscFrom, address(this), amountDscToBurn);
+
+        if (!success) revert DESCEngine__TransferFailed();
+        i_dsc.burn(amountDscToBurn);
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
