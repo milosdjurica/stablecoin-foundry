@@ -64,7 +64,9 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
 
     event CollateralDeposited(address indexed user, address indexed tokenAddress, uint256 indexed amount);
-    event CollateralRedeemed(address indexed user, address indexed tokenAddress, uint256 indexed amount);
+    event CollateralRedeemed(
+        address indexed redeemedFrom, address indexed redeemedTo, address indexed tokenAddress, uint256 amount
+    );
 
     ////////////////////
     // * Modifiers 	  //
@@ -161,12 +163,7 @@ contract DSCEngine is ReentrancyGuard {
         moreThanZero(amountCollateral)
         nonReentrant
     {
-        s_collateralDeposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
-        emit CollateralRedeemed(msg.sender, tokenCollateralAddress, amountCollateral);
-
-        bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
-
-        if (!success) revert DESCEngine__TransferFailed();
+        _redeemCollateral(tokenCollateralAddress, amountCollateral, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
@@ -218,7 +215,8 @@ contract DSCEngine is ReentrancyGuard {
         // We should implement a feature to liquidate in the event the protocol is insolvent
         // And sweep extra amounts into a treasury
         uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
-        uint256 totalCollateralToRedeeem = tokenAmountFromDebtCovered + bonusCollateral;
+        uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
+        _redeemCollateral(collateral, totalCollateralToRedeem, user, msg.sender);
     }
 
     function getHealthFactor() external view {}
@@ -260,6 +258,17 @@ contract DSCEngine is ReentrancyGuard {
         (, int256 price,,,) = priceFeed.latestRoundData();
         // If 1 ETH = $1000 -> The returned value from ChainLink will be 1000 * 1e8
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
+    }
+
+    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
+        private
+    {
+        s_collateralDeposited[from][tokenCollateralAddress] -= amountCollateral;
+        emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
+
+        bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
+
+        if (!success) revert DESCEngine__TransferFailed();
     }
 
     function _revertIfHealthFactorIsBroken(address user) internal view {
