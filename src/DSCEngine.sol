@@ -39,25 +39,28 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * Variables	  //
     ////////////////////
-    mapping(address token => address priceFeed) private s_priceFeeds; // s_tokenToPriceFeed
-
     DecentralizedStableCoin private immutable i_dsc;
+
+    mapping(address token => address priceFeed) private s_priceFeeds; // s_tokenToPriceFeed
+    mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
 
     ////////////////////
     // * Events 	  //
     ////////////////////
+    event CollateralDeposited(address indexed user, address indexed tokenAddress, uint256 indexed amount);
 
     ////////////////////
     // * Modifiers 	  //
     ////////////////////
-    modifier moreThanZero(uint amount) {
+    modifier moreThanZero(uint256 amount) {
         if (amount <= 0) revert DSCEngine__MustBeMoreThanZero();
         _;
     }
 
     modifier isAllowedToken(address tokenAddress) {
-        if (s_priceFeeds[tokenAddress] == address(0))
+        if (s_priceFeeds[tokenAddress] == address(0)) {
             revert DSCEngine__TokenAddressNotAllowed();
+        }
         _;
     }
 
@@ -68,15 +71,12 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * Constructor  //
     ////////////////////
-    constructor(
-        address[] memory tokenAddresses,
-        address[] memory priceFeedAddresses,
-        address dscAddress
-    ) {
-        if (tokenAddresses.length != priceFeedAddresses.length)
+    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address dscAddress) {
+        if (tokenAddresses.length != priceFeedAddresses.length) {
             revert DSCEngine__TokenAddressesAndPriceFeedAddressesMustBeSameLength();
+        }
 
-        for (uint i = 0; i < tokenAddresses.length; i++) {
+        for (uint256 i = 0; i < tokenAddresses.length; i++) {
             s_priceFeeds[tokenAddresses[i]] = priceFeedAddresses[i];
         }
         i_dsc = DecentralizedStableCoin(dscAddress);
@@ -97,15 +97,15 @@ contract DSCEngine is ReentrancyGuard {
      * @param tokenCollateralAddress Address of the token to deposit as collaterall (wBTC OR wETH)
      * @param amountCollateral The amount of collateral to deposit
      */
-    function depositCollateral(
-        address tokenCollateralAddress,
-        uint amountCollateral
-    )
+    function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
         external
         moreThanZero(amountCollateral)
         isAllowedToken(tokenCollateralAddress)
         nonReentrant
-    {}
+    {
+        s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral;
+        emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
+    }
 
     function redeemCollateralForDsc() external {}
 
