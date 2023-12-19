@@ -82,4 +82,6 @@ contract DSCEngineTest is Test {
         engine.depositCollateral(address(randomToken), AMOUNT_COLLATERAL);
         vm.stopPrank();
     }
+
+    function testCanDepositCollateralAndGetAccountInfo() public {}
 }
