@@ -2,6 +2,7 @@
 pragma solidity 0.8.20;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title DSCEngine
@@ -23,7 +24,7 @@ import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
  * @notice This contract is VERY loosely based on the MakerDAO DSS (DAI) system.
  */
 // Decentralized Stablecoin Engine
-contract DSCEngine {
+contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * Errors 	  //
     ////////////////////
@@ -99,7 +100,12 @@ contract DSCEngine {
     function depositCollateral(
         address tokenCollateralAddress,
         uint amountCollateral
-    ) external moreThanZero(amountCollateral) {}
+    )
+        external
+        moreThanZero(amountCollateral)
+        isAllowedToken(tokenCollateralAddress)
+        nonReentrant
+    {}
 
     function redeemCollateralForDsc() external {}
 
