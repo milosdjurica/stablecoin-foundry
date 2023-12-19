@@ -42,6 +42,11 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * Variables	  //
     ////////////////////
+    uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
+    uint256 private constant PRECISION = 1e18;
+    uint256 private constant LIQUIDATION_THRESHOLD = 50;
+    uint256 private constant LIQUIDATION_PRECISION = 100;
+
     DecentralizedStableCoin private immutable i_dsc;
 
     mapping(address token => address priceFeed) private s_priceFeeds; // s_tokenToPriceFeed
@@ -49,8 +54,6 @@ contract DSCEngine is ReentrancyGuard {
     mapping(address user => uint256 amountDscMinted) private s_DscMinted;
 
     address[] private s_collateralTokens;
-    uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
-    uint256 private constant PRECISION = 1e18;
     ////////////////////
     // * Events 	  //
     ////////////////////
@@ -158,7 +161,7 @@ contract DSCEngine is ReentrancyGuard {
     function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUsd) {
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             address token = s_collateralTokens[i];
-            uint256 amount = s_collateralDeposited[msg.sender][token];
+            uint256 amount = s_collateralDeposited[user][token];
             totalCollateralValueInUsd += getUsdValue(token, amount);
         }
         return totalCollateralValueInUsd;
@@ -183,6 +186,14 @@ contract DSCEngine is ReentrancyGuard {
         // total dscMinted
         // total collateral VALUE (in $USD)
         (uint256 totalDscMinted, uint256 totalCollateralValueInUsd) = _getAccountInformation(user);
+
+        uint256 collateralAdjustedForThreshold =
+            (totalCollateralValueInUsd * LIQUIDATION_THRESHOLD / LIQUIDATION_PRECISION);
+        // ! USER MUST HAVE DOUBLE MORE COLLATERAL THAN DEPOSITED !!!!
+        // $1000 ETH / 100 DSC
+        // 1000 * 50 / 100 / 100 > 1
+        // *50/100 can be only /2 -> 1000 / 2 / 100 = 5 >>> 1
+        return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
     }
 
     function _getAccountInformation(address user)
