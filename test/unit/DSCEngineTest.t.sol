@@ -54,6 +54,16 @@ contract DSCEngineTest is Test {
         assertEq(expectedUsd, actualUsd);
     }
 
+    function testGetTokenAmountFromUsd() public {
+        uint256 usdAmount = 100 ether;
+        // $100 / $2000
+        uint256 expectedWeth = 0.05 ether;
+        uint256 actualWeth = engine.getTokenAmountFromUsd(weth, usdAmount);
+
+        assertEq(expectedWeth, actualWeth);
+    }
+
+    // * Deposit Collateral
     function testRevertsIfCollateralZero() public {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(address(engine), AMOUNT_COLLATERAL);
@@ -63,4 +73,6 @@ contract DSCEngineTest is Test {
 
         vm.stopPrank();
     }
+
+    function testRevertsWithUnapprovedCollateral() public {}
 }
