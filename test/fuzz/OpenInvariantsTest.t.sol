@@ -6,20 +6,31 @@ pragma solidity 0.8.20;
 
 import {Test} from "lib/forge-std/src/Test.sol";
 import {StdInvariant} from "lib/forge-std/src/StdInvariant.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {DeployDsc} from "../../script/DeployDsc.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 
-contract InvariantTest is StdInvariant, Test {
+contract OpenInvariantTest is StdInvariant, Test {
     DeployDsc deployer;
     HelperConfig config;
     DecentralizedStableCoin dsc;
     DSCEngine engine;
+    address weth;
+    address wbtc;
 
     function setUp() external {
         deployer = new DeployDsc();
         (dsc, engine, config) = deployer.run();
+        (,, weth, wbtc,) = config.activeNetworkConfig();
+        targetContract(address(engine));
+    }
+
+    function invariant_protocolMustHaveMoreCollateralThanDsc() public view {
+        uint256 totalSupply = dsc.totalSupply();
+        uint256 totalWethDeposited = IERC20(weth).balanceOf(address(engine));
+        uint256 totalWbtcDeposited = IERC20(wbtc).balanceOf(address(engine));
     }
 }
