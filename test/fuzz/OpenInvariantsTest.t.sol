@@ -4,7 +4,7 @@ pragma solidity 0.8.20;
 // 1. Total supply of DSC should be less than the total value of collateral
 // 2. Getter view functions should never revert -> evergreen invariant
 
-import {Test} from "lib/forge-std/src/Test.sol";
+import {Test, console} from "lib/forge-std/src/Test.sol";
 import {StdInvariant} from "lib/forge-std/src/StdInvariant.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -32,5 +32,13 @@ contract OpenInvariantTest is StdInvariant, Test {
         uint256 totalSupply = dsc.totalSupply();
         uint256 totalWethDeposited = IERC20(weth).balanceOf(address(engine));
         uint256 totalWbtcDeposited = IERC20(wbtc).balanceOf(address(engine));
+
+        uint256 wethValue = engine.getUsdValue(weth, totalWethDeposited);
+        uint256 wbtcValue = engine.getUsdValue(wbtc, totalWbtcDeposited);
+
+        console.log("wethValue -> ", wethValue);
+        console.log("wbtcValue -> ", wbtcValue);
+        console.log("totalSupply -> ", totalSupply);
+        assert(wethValue + wbtcValue >= totalSupply);
     }
 }
