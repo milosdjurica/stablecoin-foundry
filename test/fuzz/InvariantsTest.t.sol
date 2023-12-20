@@ -47,4 +47,11 @@ contract InvariantTest is StdInvariant, Test {
         console.log("Times mint is called -> ", handler.timesMintIsCalled());
         assert(wethValue + wbtcValue >= totalSupply);
     }
+
+    function invariant_gettersShouldNotRevert() public view {
+        engine.getAccountCollateralValue(weth);
+        engine.getAccountInformation(msg.sender);
+        engine.getCollateralBalanceOfUser(msg.sender, weth);
+        engine.getCollateralTokens();
+    }
 }
