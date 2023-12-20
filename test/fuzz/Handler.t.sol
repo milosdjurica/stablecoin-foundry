@@ -16,6 +16,9 @@ contract Handler is Test {
     ERC20Mock wbtc;
     uint256 constant MAX_DEPOSIT_SIZE = type(uint96).max;
 
+    uint256 public timesMintIsCalled;
+    address[] public usersWithCollateralDeposited;
+
     constructor(DSCEngine _dscEngine, DecentralizedStableCoin _dsc) {
         engine = _dscEngine;
         dsc = _dsc;
@@ -25,7 +28,27 @@ contract Handler is Test {
         wbtc = ERC20Mock(collateralTokens[1]);
     }
 
-    // redeem collateral
+    // Mint DSC
+
+    function mintDsc(uint256 amount, uint256 addressSeed) public {
+        if (usersWithCollateralDeposited.length == 0) return;
+        address sender = usersWithCollateralDeposited[addressSeed % usersWithCollateralDeposited.length];
+
+        (uint256 totalDscMinted, uint256 collateralValueInUsd) = engine.getAccountInformation(sender);
+        int256 maxDscToMint = (int256(collateralValueInUsd) / 2) - int256(totalDscMinted);
+
+        if (maxDscToMint < 0) return;
+
+        amount = bound(amount, 0, uint256(maxDscToMint));
+        if (amount == 0) return;
+
+        vm.startPrank(sender);
+        engine.mintDsc(amount);
+        vm.stopPrank();
+        timesMintIsCalled++;
+    }
+
+    // Redeem collateral
 
     function depositCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
@@ -36,10 +59,12 @@ contract Handler is Test {
         collateral.approve(address(engine), amountCollateral);
         engine.depositCollateral(address(collateral), amountCollateral);
         vm.stopPrank();
+        usersWithCollateralDeposited.push(msg.sender);
     }
 
     function redeemCollateral(uint256 collateralSeed, uint256 amountCollateral) public {
         ERC20Mock collateral = _getCollateralFromSeed(collateralSeed);
+        // ! msg.sender, address(collateral) -> He has it switched !!!
         uint256 maxCollateralToRedeem = engine.getCollateralBalanceOfUser(msg.sender, address(collateral));
 
         amountCollateral = bound(amountCollateral, 0, maxCollateralToRedeem);
