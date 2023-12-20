@@ -195,7 +195,7 @@ contract DSCEngine is ReentrancyGuard {
      * @notice This function working assumes the protocol will be roughly 200% overcollateralized
      * in order for this to work. For every 100 DSC there must be AT LEAST $200 of collateral !!!
      * @notice The known bug would be if the protocol were 100% or less collateralized,
-     * then we wouldnt be able to incentive the liquidators.
+     * then we wouldn't be able to incentive the liquidators.
      * For example -> price of collateral plummeted before anyone could be liquidated.
      */
     function liquidate(address collateral, address user, uint256 debtToCover)
