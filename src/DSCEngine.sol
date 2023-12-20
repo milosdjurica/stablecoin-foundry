@@ -265,6 +265,9 @@ contract DSCEngine is ReentrancyGuard {
     ////////////////////
     // * View & Pure  //
     ////////////////////
+    function getCollateralTokens() external view returns (address[] memory) {
+        return s_collateralTokens;
+    }
 
     function getAccountInformation(address user)
         external

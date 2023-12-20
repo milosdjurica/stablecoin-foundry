@@ -12,6 +12,7 @@ import {DeployDsc} from "../../script/DeployDsc.s.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
+import {Handler} from "./Handler.t.sol";
 
 contract InvariantTest is StdInvariant, Test {
     DeployDsc deployer;
@@ -20,12 +21,15 @@ contract InvariantTest is StdInvariant, Test {
     DSCEngine engine;
     address weth;
     address wbtc;
+    Handler handler;
 
     function setUp() external {
         deployer = new DeployDsc();
         (dsc, engine, config) = deployer.run();
         (,, weth, wbtc,) = config.activeNetworkConfig();
-        targetContract(address(engine));
+        // targetContract(address(engine));
+        handler = new Handler(engine, dsc);
+        targetContract(address(handler));
     }
 
     function invariant_protocolMustHaveMoreCollateralThanDsc() public view {
